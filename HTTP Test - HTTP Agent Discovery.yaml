@@ -205,14 +205,3 @@ zabbix_export:
             -
               lld_macro: '{#URL}'
               path: $.url
-      valuemaps:
-        -
-          uuid: 6278658b1c9b4e38967b3966528ae5ab
-          name: Status
-          mappings:
-            -
-              value: '0'
-              newvalue: fail
-            -
-              value: '1'
-              newvalue: ok
