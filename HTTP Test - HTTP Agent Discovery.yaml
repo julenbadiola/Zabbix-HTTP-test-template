@@ -1,0 +1,218 @@
+zabbix_export:
+  version: '6.0'
+  date: '2023-06-01T09:28:03Z'
+  groups:
+    -
+      uuid: 7df96b18c230490a9a0a9e2307226338
+      name: Templates
+  templates:
+    -
+      uuid: f01843693cb342cdbf9b2cc3b2269e3d
+      template: 'HTTP Test - HTTP Agent Discovery'
+      name: 'HTTP Test - HTTP Agent Discovery'
+      groups:
+        -
+          name: Templates
+      discovery_rules:
+        -
+          uuid: fea990c54ddd4e71b8ff452bfaf0608f
+          name: 'Get http tests from macros'
+          type: SCRIPT
+          key: macros
+          params: |
+            res = []
+            function clean(str, default_val) {
+                 if(str.substring(0, 2) === "{$" && str.substr(str.length - 1) === "}"){
+                   return default_val
+                 }
+                 return str
+            }
+            function check(url, status_codes, content, nocontent, interval, timeout) {
+             cleaned_url = clean(url, "")
+             if (cleaned_url){
+               const data = {
+                 url: cleaned_url, 
+                 status_codes: clean(status_codes, "200-399"), 
+                 content: clean(content, ""),
+                 nocontent: clean(nocontent, ""),
+                 interval: clean(interval, "5m"),
+                 timeout: clean(timeout, "15s")
+               }
+               const delimiter = ';'
+               var key = data.url.concat(delimiter, data.status_codes)
+               if(data.content){
+                 key = key.concat(delimiter, data.content)
+               }
+               if(data.nocontent){
+                 key = key.concat(delimiter, data.nocontent)
+               }
+               data.key = key
+               res.push(data)
+             }
+            }
+            check('{$WEB1.URL}', '{$WEB1.STATUS_CODES}', '{$WEB1.CONTENT}', '{$WEB1.NOCONTENT}', '{$WEB1.INTERVAL}', '{$WEB1.TIMEOUT}')
+            check('{$WEB2.URL}', '{$WEB2.STATUS_CODES}', '{$WEB2.CONTENT}', '{$WEB2.NOCONTENT}', '{$WEB2.INTERVAL}', '{$WEB2.TIMEOUT}')
+            check('{$WEB3.URL}', '{$WEB3.STATUS_CODES}', '{$WEB3.CONTENT}', '{$WEB3.NOCONTENT}', '{$WEB3.INTERVAL}', '{$WEB3.TIMEOUT}')
+            check('{$WEB4.URL}', '{$WEB4.STATUS_CODES}', '{$WEB4.CONTENT}', '{$WEB4.NOCONTENT}', '{$WEB4.INTERVAL}', '{$WEB4.TIMEOUT}')
+            check('{$WEB5.URL}', '{$WEB5.STATUS_CODES}', '{$WEB5.CONTENT}', '{$WEB5.NOCONTENT}', '{$WEB5.INTERVAL}', '{$WEB5.TIMEOUT}')
+            check('{$WEB6.URL}', '{$WEB6.STATUS_CODES}', '{$WEB6.CONTENT}', '{$WEB6.NOCONTENT}', '{$WEB6.INTERVAL}', '{$WEB6.TIMEOUT}')
+            check('{$WEB7.URL}', '{$WEB7.STATUS_CODES}', '{$WEB7.CONTENT}', '{$WEB7.NOCONTENT}', '{$WEB7.INTERVAL}', '{$WEB7.TIMEOUT}')
+            check('{$WEB8.URL}', '{$WEB8.STATUS_CODES}', '{$WEB8.CONTENT}', '{$WEB8.NOCONTENT}', '{$WEB8.INTERVAL}', '{$WEB8.TIMEOUT}')
+            check('{$WEB9.URL}', '{$WEB9.STATUS_CODES}', '{$WEB9.CONTENT}', '{$WEB9.NOCONTENT}', '{$WEB9.INTERVAL}', '{$WEB9.TIMEOUT}')
+            check('{$WEB10.URL}', '{$WEB10.STATUS_CODES}', '{$WEB10.CONTENT}', '{$WEB10.NOCONTENT}', '{$WEB10.INTERVAL}', '{$WEB10.TIMEOUT}')
+            return JSON.stringify(res)
+          lifetime: 1h
+          item_prototypes:
+            -
+              uuid: 9b1b1bdf8f2f498c90de25cf223c529b
+              name: '{#KEY} check'
+              type: HTTP_AGENT
+              key: 'checktest[{#KEY}]'
+              delay: '{#INTERVAL}'
+              history: 1d
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JAVASCRIPT
+                  parameters:
+                    - |
+                      const dict = JSON.parse(value);
+                      const matches = Object.keys(dict.header)[0].match(/\n*HTTP.* ([0-9]{3})/);
+                      const status_code_digit = parseInt(matches[1])
+                      
+                      function validate(status_code, valid_status_codes){
+                        if (!valid_status_codes) return true;
+                        const splitted = valid_status_codes.split(",")
+                        for(va in splitted){
+                          const subsplitted = splitted[va].trim().split("-")
+                          if(subsplitted.length === 1){
+                            if(parseInt(subsplitted[0]) === status_code) {
+                              return true
+                            }
+                          }else{
+                            if(status_code >= parseInt(subsplitted[0]) && status_code <= parseInt(subsplitted[1])){
+                              return true
+                            }
+                          }
+                        }
+                        return false
+                      }
+                      const final = {
+                        status: status_code_digit,
+                        status_ok: validate(status_code_digit, "{#STATUS_CODES}") ? 1 : 0,
+                        body: dict.body,
+                        body_content_ok: "{#CONTENT}" === "" || dict.body.includes("{#CONTENT}") ? 1 : 0,
+                        body_nocontent_ok: "{#NOCONTENT}" === "" || !dict.body.includes("{#NOCONTENT}") ? 1 : 0,
+                      }
+                      // add more headers
+                      // for(i in dict.header){
+                      //  final[i] = dict.header[i]
+                      // }
+                      return JSON.stringify(final)
+                -
+                  type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 2h
+              timeout: '{#TIMEOUT}'
+              url: '{#URL}'
+              status_codes: ''
+              follow_redirects: 'NO'
+              retrieve_mode: BOTH
+              output_format: JSON
+            -
+              uuid: 0b270f638f4a4888b0168f75356bd567
+              name: 'Content ok for {#URL}'
+              type: DEPENDENT
+              key: 'content_ok[{#KEY}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.body_content_ok
+              master_item:
+                key: 'checktest[{#KEY}]'
+              trigger_prototypes:
+                -
+                  uuid: 3cfc992d2bab4a5ba3ab3d5f9d9e4b84
+                  expression: 'last(/HTTP Test - HTTP Agent Discovery/content_ok[{#KEY}])=0'
+                  name: '{#URL} does not have ''{#CONTENT}'' in response'
+                  priority: WARNING
+            -
+              uuid: 17abba81d7d44d35945fe26af058b720
+              name: 'No Content ok for {#URL}'
+              type: DEPENDENT
+              key: 'nocontent_ok[{#KEY}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.body_nocontent_ok
+              master_item:
+                key: 'checktest[{#KEY}]'
+              trigger_prototypes:
+                -
+                  uuid: c16700bbe8824aa0a5439959c4d64c85
+                  expression: 'last(/HTTP Test - HTTP Agent Discovery/nocontent_ok[{#KEY}])=0'
+                  name: '{#URL} does have ''{#NOCONTENT}'' in response'
+                  priority: WARNING
+            -
+              uuid: 8641c496c94e4efb8e30ab728a360ba8
+              name: 'Status ok for {#URL}'
+              type: DEPENDENT
+              key: 'status_ok[{#KEY}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.status_ok
+              master_item:
+                key: 'checktest[{#KEY}]'
+              trigger_prototypes:
+                -
+                  uuid: 09ce70c265e14c078aa103849cbfabf8
+                  expression: 'last(/HTTP Test - HTTP Agent Discovery/status_ok[{#KEY}])=0'
+                  name: '{#URL} not returning ''{#STATUS_CODES}'' status code'
+                  priority: WARNING
+          lld_macro_paths:
+            -
+              lld_macro: '{#CONTENT}'
+              path: $.content
+            -
+              lld_macro: '{#INTERVAL}'
+              path: $.interval
+            -
+              lld_macro: '{#KEY}'
+              path: $.key
+            -
+              lld_macro: '{#NOCONTENT}'
+              path: $.nocontent
+            -
+              lld_macro: '{#STATUS_CODES}'
+              path: $.status_codes
+            -
+              lld_macro: '{#TIMEOUT}'
+              path: $.timeout
+            -
+              lld_macro: '{#URL}'
+              path: $.url
+      valuemaps:
+        -
+          uuid: 6278658b1c9b4e38967b3966528ae5ab
+          name: Status
+          mappings:
+            -
+              value: '0'
+              newvalue: fail
+            -
+              value: '1'
+              newvalue: ok
