@@ -6,12 +6,12 @@ Macro | Description | Format | Required | Default
 | :---: | :---: | :---: | :---: | :---: |
 ${WEBX.URL} | URL to check | string | Yes | 
 ${WEBX.STATUS_CODES} | Status codes expected | list of codes and ranges ( 200-299 / 200,201,400-410) | No | 200-399
-${WEBX.CONTENT} | Content that should be present | string | No | ""
-${WEBX.NOCONTENT} | Content that should not be present | string | No | ""
+${WEBX.CONTENT} | Content that should be present | regex string | No | ""
+${WEBX.NOCONTENT} | Content that should not be present | regex string | No | ""
 ${WEBX.INTERVAL} | Frequency of the HTTP test | time (30m / 1h / 1w) | No | 5m
 ${WEBX.TIMEOUT} | Timeout of the HTTP test | time (10s) | No | 15s
 
-The template supports up to 10 tests to different URLs. To do this, macros must be added like this:
+The template supports up to 12 tests to different URLs. To do this, macros must be added like this:
 
 Check 1:
 * ${WEB1.URL}
