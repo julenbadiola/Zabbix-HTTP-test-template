@@ -1,6 +1,6 @@
 zabbix_export:
   version: '6.0'
-  date: '2023-06-01T09:28:03Z'
+  date: '2023-06-22T15:57:14Z'
   groups:
     -
       uuid: 7df96b18c230490a9a0a9e2307226338
@@ -31,6 +31,7 @@ zabbix_export:
              cleaned_url = clean(url, "")
              if (cleaned_url){
                const data = {
+                 key: cleaned_url,
                  url: cleaned_url, 
                  status_codes: clean(status_codes, "200-399"), 
                  content: clean(content, ""),
@@ -38,15 +39,6 @@ zabbix_export:
                  interval: clean(interval, "5m"),
                  timeout: clean(timeout, "15s")
                }
-               const delimiter = ';'
-               var key = data.url.concat(delimiter, data.status_codes)
-               if(data.content){
-                 key = key.concat(delimiter, data.content)
-               }
-               if(data.nocontent){
-                 key = key.concat(delimiter, data.nocontent)
-               }
-               data.key = key
                res.push(data)
              }
             }
@@ -60,6 +52,8 @@ zabbix_export:
             check('{$WEB8.URL}', '{$WEB8.STATUS_CODES}', '{$WEB8.CONTENT}', '{$WEB8.NOCONTENT}', '{$WEB8.INTERVAL}', '{$WEB8.TIMEOUT}')
             check('{$WEB9.URL}', '{$WEB9.STATUS_CODES}', '{$WEB9.CONTENT}', '{$WEB9.NOCONTENT}', '{$WEB9.INTERVAL}', '{$WEB9.TIMEOUT}')
             check('{$WEB10.URL}', '{$WEB10.STATUS_CODES}', '{$WEB10.CONTENT}', '{$WEB10.NOCONTENT}', '{$WEB10.INTERVAL}', '{$WEB10.TIMEOUT}')
+            check('{$WEB11.URL}', '{$WEB11.STATUS_CODES}', '{$WEB11.CONTENT}', '{$WEB11.NOCONTENT}', '{$WEB11.INTERVAL}', '{$WEB11.TIMEOUT}')
+            check('{$WEB12.URL}', '{$WEB12.STATUS_CODES}', '{$WEB12.CONTENT}', '{$WEB12.NOCONTENT}', '{$WEB12.INTERVAL}', '{$WEB12.TIMEOUT}')
             return JSON.stringify(res)
           lifetime: 1h
           item_prototypes:
@@ -90,7 +84,8 @@ zabbix_export:
                             if(parseInt(subsplitted[0]) === status_code) {
                               return true
                             }
-                          }else{
+                          }
+                          else{
                             if(status_code >= parseInt(subsplitted[0]) && status_code <= parseInt(subsplitted[1])){
                               return true
                             }
@@ -101,9 +96,9 @@ zabbix_export:
                       const final = {
                         status: status_code_digit,
                         status_ok: validate(status_code_digit, "{#STATUS_CODES}") ? 1 : 0,
-                        body: dict.body,
-                        body_content_ok: "{#CONTENT}" === "" || dict.body.includes("{#CONTENT}") ? 1 : 0,
-                        body_nocontent_ok: "{#NOCONTENT}" === "" || !dict.body.includes("{#NOCONTENT}") ? 1 : 0,
+                      // body: dict.body,
+                        body_content_ok: "{#CONTENT}" === "" || (new RegExp("{#CONTENT}")).test(dict.body) ? 1 : 0,
+                        body_nocontent_ok: "{#NOCONTENT}" === "" || !((new RegExp("{#NOCONTENT}")).test(dict.body)) ? 1 : 0,
                       }
                       // add more headers
                       // for(i in dict.header){
@@ -118,8 +113,16 @@ zabbix_export:
               url: '{#URL}'
               status_codes: ''
               follow_redirects: 'NO'
+              headers:
+                -
+                  name: User-Agent
+                  value: 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0'
               retrieve_mode: BOTH
               output_format: JSON
+              tags:
+                -
+                  tag: http
+                  value: 'true'
             -
               uuid: 0b270f638f4a4888b0168f75356bd567
               name: 'Content ok for {#URL}'
